@@ -1,6 +1,12 @@
 import { Bell } from "lucide-react";
+import Balance from "./balance";
 
-function Header() {
+type HeaderProps = {
+    balance: number;
+    setBalance: React.Dispatch<React.SetStateAction<number>>;
+};
+
+function Header({ balance, setBalance }: HeaderProps) {
     return (
         <header className="flex h-20 items-center justify-between border-b border-neutral-800 px-8">
             <div>
@@ -10,6 +16,13 @@ function Header() {
                 <p className="mt-1 text-xs text-neutral-500">
                     Browse player listings and compare prices
                 </p>
+            </div>
+
+            <div className="flex items-center gap-4">
+                <Balance
+                    balance={balance}
+                    setBalance={setBalance}
+                />
             </div>
 
             <div className="flex items-center gap-4">
