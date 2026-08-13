@@ -7,7 +7,6 @@ export const items: Item[] = [
         category: "Electronics",
         price: 465000,
         listings: 12,
-        change: 5.2,
         image: "/items/graphics-card.png",
     },
     {
@@ -16,7 +15,6 @@ export const items: Item[] = [
         category: "Medical",
         price: 700000,
         listings: 8,
-        change: -2.1,
         image: "/items/ledx.png",
     },
     {
@@ -25,7 +23,6 @@ export const items: Item[] = [
         category: "Ammo",
         price: 1500,
         listings: 25,
-        change: 1.6,
         image:  "/items/m80.png",
     },
     {
@@ -34,7 +31,6 @@ export const items: Item[] = [
         category: "Consumables",
         price: 120000,
         listings: 15,
-        change: 3.4,
         image: "/items/moonshine.png",
     },
 ];

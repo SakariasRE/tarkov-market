@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import Sidebar from './components/sidebar';
 import Header from './components/header';
 import Market from './pages/market';
+import Inventory from './pages/inventory';
 
 function App() {
     const [balance, setBalance] = useState(() => {
@@ -23,7 +24,8 @@ function App() {
                 setBalance={setBalance}
                 />
 
-                <Market />
+                
+                <Inventory />
             </div>
         </div>
     );

@@ -4,6 +4,9 @@ export type Item = {
     category: string;
     price: number;
     listings: number;
-    change: number;
     image: string;
+};
+
+export type InventoryItem = Item & {
+    quantity: number;
 };

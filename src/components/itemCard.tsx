@@ -5,7 +5,6 @@ type ItemCardProps = {
 }
 
 function ItemCard({ item }: ItemCardProps) {
-    const isPositive = item.change >= 0
 
     return (
         <article className="group border border-neutral-800 bg-[#151613] p-4 transition hover:border-[#8b805e] hover:bg-[#191a16]">
