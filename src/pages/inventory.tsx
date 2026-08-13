@@ -1,10 +1,13 @@
 import { useState } from "react";
 import type { InventoryItem } from "../types/item";
+import { items as marketItems } from "../data/items";
+import InventoryItemCard from "../components/inventoryItemCard";
+
 
 function Inventory() {
     const [items, setItems] = useState<InventoryItem[]>(() => {
         const savedItems = localStorage.getItem('inventory');
-        return savedItems ? JSON.parse(savedItems) : [];
+        return savedItems ? JSON.parse(savedItems) : [{...marketItems[0], quantity: 2}, {...marketItems[1], quantity: 5}, {...marketItems[2], quantity: 100}];
     });
     return (
         <main className="flex-1 p-8">
@@ -18,11 +21,11 @@ function Inventory() {
                         />
                     </div>
                 </div>
-                {items.map((item) => (
-                    <p key={item.id}>
-                        {item.name} (Quantity: {item.quantity})
-                    </p>
-                ))}
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    {items.map((item) => (
+                        <InventoryItemCard key={item.id} item={item} />
+                    ))}
+                </div>
             </div>
         </main>
     );
