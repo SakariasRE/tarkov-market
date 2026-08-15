@@ -4,6 +4,7 @@ import Header from "./components/header";
 import Inventory from "./pages/inventory";
 import SellItem from "./pages/sellItem";
 import Market from "./pages/market";
+import Statistics from "./pages/statistics";
 
 function App() {
   const [balance, setBalance] = useState(() => {
@@ -33,6 +34,7 @@ function App() {
         {currentPage === "marketplace" && <Market />}
         {currentPage === "inventory" && <Inventory />}
         {currentPage === "sell" && <SellItem />}
+        {currentPage === "statistics" && <Statistics />}
       </div>
     </div>
   );
