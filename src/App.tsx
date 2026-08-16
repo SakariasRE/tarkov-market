@@ -5,6 +5,7 @@ import Inventory from "./pages/inventory";
 import SellItem from "./pages/sellItem";
 import Market from "./pages/market";
 import Statistics from "./pages/statistics";
+import MyListings from "./pages/myListings";
 
 function App() {
   const [balance, setBalance] = useState(() => {
@@ -35,6 +36,7 @@ function App() {
         {currentPage === "inventory" && <Inventory />}
         {currentPage === "sell" && <SellItem />}
         {currentPage === "statistics" && <Statistics />}
+        {currentPage === "listings" && <MyListings />}
       </div>
     </div>
   );
