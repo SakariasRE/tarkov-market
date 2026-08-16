@@ -5,6 +5,7 @@ import {
   Plus,
   BarChart3,
   User,
+  Package,
 } from "lucide-react";
 
 type SidebarProps = {
@@ -38,6 +39,12 @@ function Sidebar({ currentPage, setCurrentPage }: SidebarProps) {
           text="Marketplace"
           active={currentPage === "marketplace"}
           onClick={() => setCurrentPage("marketplace")}
+        />
+        <NavItem
+          icon={<Package size={19} />}
+          text="Inventory"
+          active={currentPage === "inventory"}
+          onClick={() => setCurrentPage("inventory")}
         />
 
         <NavItem
