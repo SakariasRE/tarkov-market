@@ -7,6 +7,7 @@ import Market from "./pages/market";
 import Statistics from "./pages/statistics";
 import MyListings from "./pages/myListings";
 import Dashboard from "./pages/dashboard";
+import Profile from "./pages/profile";
 
 function App() {
   const [balance, setBalance] = useState(() => {
@@ -32,6 +33,7 @@ function App() {
           balance={balance}
           setBalance={setBalance}
         />
+        {currentPage === "profile" && <Profile />}
         {currentPage === "dashboard" && <Dashboard />}
         {currentPage === "marketplace" && <Market />}
         {currentPage === "inventory" && <Inventory />}
