@@ -39,7 +39,7 @@ function Statistics() {
   };
 
   return (
-    <main className="flex-1 p-8">
+    <main className="min-w-0 flex-1 overflow-x-hidden p-4 md:p-8">
       <div className="mx-auto w-full max-w-[1600px]">
         <h1 className="text-2xl font-semibold text-white">
           Statistics
