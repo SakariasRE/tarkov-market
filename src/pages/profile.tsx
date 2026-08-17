@@ -9,71 +9,47 @@ import {
   Save,
   X,
 } from "lucide-react";
+import useProfile from "../hooks/useProfile";
 
 function Profile() {
   const balance = Number(localStorage.getItem("balance")) || 500000;
-
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [profileImage, setProfileImage] = useState<string | null>(() => {
-    return localStorage.getItem("profileImage");
-  });
-
-  const [username, setUsername] = useState(
-    () => localStorage.getItem("username") || "Player123"
-  );
-
-  const [email, setEmail] = useState(
-    () => localStorage.getItem("email") || "player123@example.com"
-  );
+  const {
+    username,
+    email,
+    profileImage,
+    updateProfile,
+    uploadAvatar,
+  } = useProfile();
 
   const [isEditing, setIsEditing] = useState(false);
-
   const [editedUsername, setEditedUsername] = useState(username);
   const [editedEmail, setEditedEmail] = useState(email);
 
   const memberSince = "August 2026";
 
-  function handleImageUpload(event: React.ChangeEvent<HTMLInputElement>) {
+  function handleImageUpload(
+    event: React.ChangeEvent<HTMLInputElement>
+  ) {
     const file = event.target.files?.[0];
 
     if (!file) {
       return;
     }
 
-    if (!file.type.startsWith("image/")) {
-      return;
-    }
-
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      const image = reader.result;
-
-      if (typeof image === "string") {
-        setProfileImage(image);
-        localStorage.setItem("profileImage", image);
-      }
-    };
-
-    reader.readAsDataURL(file);
+    uploadAvatar(file);
   }
 
   function handleSave() {
-    const trimmedUsername = editedUsername.trim();
-    const trimmedEmail = editedEmail.trim();
+    const success = updateProfile(
+      editedUsername,
+      editedEmail
+    );
 
-    if (!trimmedUsername || !trimmedEmail) {
-      return;
+    if (success) {
+      setIsEditing(false);
     }
-
-    setUsername(trimmedUsername);
-    setEmail(trimmedEmail);
-
-    localStorage.setItem("username", trimmedUsername);
-    localStorage.setItem("email", trimmedEmail);
-
-    setIsEditing(false);
   }
 
   function handleCancel() {
@@ -83,7 +59,7 @@ function Profile() {
   }
 
   return (
-    <main className="flex-1 p-8">
+    <main className="min-w-0 flex-1 overflow-x-hidden p-4 md:p-8">
       <div className="mx-auto w-full max-w-[1600px]">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
