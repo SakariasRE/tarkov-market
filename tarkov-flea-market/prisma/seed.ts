@@ -1,3 +1,4 @@
+import { hashPassword } from '../lib/password'
 import { PrismaClient } from '@prisma/client'
 import { PrismaMariaDb } from '@prisma/adapter-mariadb'
 import 'dotenv/config'
@@ -230,12 +231,15 @@ const ITEMS: SeedItem[] = [
 ]
 
 async function main() {
+    const password = await hashPassword('testtest')
+
     const user = await prisma.user.upsert({
         where: { email: 'test@example.com' },
-        update: {},
+        update: { password },
         create: {
             username: 'testuser',
             email: 'test@example.com',
+            password,
             avatar: null
         }
     })

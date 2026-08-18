@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { getCurrentUser } from '@/lib/auth'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
@@ -29,7 +30,13 @@ export async function GET(request: Request) {
 
             include: {
                 category: true,
-                creator: true
+                creator: {
+                    select: {
+                        id: true,
+                        username: true,
+                        avatar: true
+                    }
+                }
             },
 
             orderBy: {
@@ -50,6 +57,15 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
     try {
+        const user = await getCurrentUser()
+
+        if (!user) {
+            return NextResponse.json(
+                { error: 'Du måste vara inloggad för att lägga upp föremål' },
+                { status: 401 }
+            )
+        }
+
         const body = await request.json()
 
         const {
@@ -79,12 +95,17 @@ export async function POST(request: Request) {
                 image,
                 categoryId: Number(categoryId),
 
-                // Tillfällig användare tills login är kopplat
-                createdById: 1
+                createdById: user.id
             },
             include: {
                 category: true,
-                creator: true
+                creator: {
+                    select: {
+                        id: true,
+                        username: true,
+                        avatar: true
+                    }
+                }
             }
         })
 

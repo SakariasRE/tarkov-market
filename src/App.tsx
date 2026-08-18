@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import type { AuthUser } from "./api/auth";
+import { fetchCurrentUser, logout } from "./api/auth";
 import Sidebar from "./components/sidebar";
 import Header from "./components/header";
 import Login from "./pages/login";
@@ -16,9 +18,8 @@ function App() {
     return savedBalance ? Number(savedBalance) : 500000;
   });
 
-  const [isLoggedIn, setIsLoggedIn] = useState(() => {
-    return localStorage.getItem("isLoggedIn") === "true";
-  });
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
 
   const [currentPage, setCurrentPage] = useState("inventory");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -27,23 +28,56 @@ function App() {
     localStorage.setItem("balance", balance.toString());
   }, [balance]);
 
+  
   useEffect(() => {
-    localStorage.setItem("isLoggedIn", isLoggedIn.toString());
-  }, [isLoggedIn]);
+    let ignore = false;
+
+    fetchCurrentUser()
+      .then((currentUser) => {
+        if (!ignore) setUser(currentUser);
+      })
+      .catch(() => {
+        if (!ignore) setUser(null);
+      })
+      .finally(() => {
+        if (!ignore) setIsCheckingSession(false);
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   function handlePageChange(page: string) {
     setCurrentPage(page);
     setIsSidebarOpen(false);
   }
 
-  function handleLogout() {
-    setIsLoggedIn(false);
+  async function handleLogout() {
+    try {
+      await logout();
+    } catch {
+      // Cookien kan redan ha gatt ut - logga ut lokalt anda.
+    }
+
+    setUser(null);
     setCurrentPage("inventory");
     setIsSidebarOpen(false);
   }
 
-  if (!isLoggedIn) {
-    return <Login onLogin={() => setIsLoggedIn(true)} />;
+  if (isCheckingSession) {
+    return (
+      <main
+        aria-busy="true"
+        className="flex min-h-screen items-center justify-center bg-neutral-950"
+      >
+        <p className="text-sm text-neutral-500">Laddar…</p>
+      </main>
+    );
+  }
+
+  if (!user) {
+    return <Login onLogin={setUser} />;
   }
 
   return (

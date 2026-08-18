@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { getCurrentUser } from '@/lib/auth'
 import { NextResponse } from 'next/server'
 
 type RouteContext = {
@@ -25,7 +26,13 @@ export async function GET(request: Request, context: RouteContext) {
             },
             include: {
                 category: true,
-                creator: true
+                creator: {
+                    select: {
+                        id: true,
+                        username: true,
+                        avatar: true
+                    }
+                }
             }
         })
 
@@ -49,6 +56,15 @@ export async function GET(request: Request, context: RouteContext) {
 
 export async function PUT(request: Request, context: RouteContext) {
     try {
+        const user = await getCurrentUser()
+
+        if (!user) {
+            return NextResponse.json(
+                { error: 'Du måste vara inloggad' },
+                { status: 401 }
+            )
+        }
+
         const { id } = await context.params
         const itemId = Number(id)
 
@@ -101,7 +117,13 @@ export async function PUT(request: Request, context: RouteContext) {
             },
             include: {
                 category: true,
-                creator: true
+                creator: {
+                    select: {
+                        id: true,
+                        username: true,
+                        avatar: true
+                    }
+                }
             }
         })
 
@@ -118,6 +140,15 @@ export async function PUT(request: Request, context: RouteContext) {
 
 export async function DELETE(request: Request, context: RouteContext) {
     try {
+        const user = await getCurrentUser()
+
+        if (!user) {
+            return NextResponse.json(
+                { error: 'Du måste vara inloggad' },
+                { status: 401 }
+            )
+        }
+
         const { id } = await context.params
         const itemId = Number(id)
 
@@ -138,6 +169,13 @@ export async function DELETE(request: Request, context: RouteContext) {
             return NextResponse.json(
                 { error: 'Item not found' },
                 { status: 404 }
+            )
+        }
+
+        if (existingItem.createdById !== user.id) {
+            return NextResponse.json(
+                { error: 'Du kan bara ändra dina egna förempl' },
+                { status: 403 }
             )
         }
 
