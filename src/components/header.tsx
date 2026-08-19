@@ -7,26 +7,25 @@ import {
   Menu,
 } from "lucide-react";
 
-import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Balance from "./balance";
+import useProfile from "../hooks/useProfile";
 import { useAccessibility } from "../context/accessibilityContext";
 
 type HeaderProps = {
   balance: number;
   setBalance: React.Dispatch<React.SetStateAction<number>>;
-  onProfileClick: () => void;
   onMenuClick: () => void;
 };
 
 function Header({
   balance,
   setBalance,
-  onProfileClick,
   onMenuClick,
 }: HeaderProps) {
-  const [profileImage] = useState<string | null>(() => {
-    return localStorage.getItem("profileImage");
-  });
+  const navigate = useNavigate();
+
+  const { profileImage, username } = useProfile();
 
   const {
     theme,
@@ -108,14 +107,14 @@ function Header({
 
         <button
           type="button"
-          onClick={onProfileClick}
+          onClick={() => navigate("/profile")}
           aria-label="Open profile"
           className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-neutral-700 bg-neutral-800 transition hover:border-amber-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 sm:h-10 sm:w-10"
         >
           {profileImage ? (
             <img
               src={profileImage}
-              alt=""
+              alt={username ? `${username}s profilbild` : ""}
               className="h-full w-full object-cover"
             />
           ) : (

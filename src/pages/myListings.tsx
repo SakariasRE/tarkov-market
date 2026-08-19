@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
-import { Check, Pencil, Trash2, X } from "lucide-react";
 import type { ApiItem } from "../api/items";
 import { deleteItem, fetchItems, updateItem } from "../api/items";
+import PageHeading from "../components/ui/pageHeading";
+import SectionHeading from "../components/ui/sectionHeading";
+import ErrorMessage from "../components/ui/errorMessage";
+import StatusPanel from "../components/ui/statusPanel";
+import ListingCard from "../components/listings/listingCard";
 
 function MyListings() {
   const [listings, setListings] = useState<ApiItem[]>([]);
@@ -90,208 +94,45 @@ function MyListings() {
   return (
     <main className="min-w-0 flex-1 overflow-x-hidden p-4 md:p-8">
       <div className="mx-auto w-full max-w-[1600px]">
-        <div>
-          <h1 className="text-2xl font-semibold text-white">
-            My Listings
-          </h1>
+        <PageHeading
+          title="My Listings"
+          description="Manage the items you currently have listed for sale"
+        />
 
-          <p className="mt-1 text-sm text-neutral-400">
-            Manage the items you currently have listed for sale
-          </p>
-        </div>
+        <section className="mt-8" aria-labelledby="active-listings-heading">
+          <SectionHeading
+            id="active-listings-heading"
+            title="Active Listings"
+            meta={`${listings.length} listings`}
+          />
 
-        <section
-          className="mt-8"
-          aria-labelledby="active-listings-heading"
-        >
-          <div className="mb-4 flex items-center justify-between">
-            <h2
-              id="active-listings-heading"
-              className="text-lg font-semibold text-white"
-            >
-              Active Listings
-            </h2>
-
-            <p className="text-sm text-neutral-400">
-              {listings.length} listings
-            </p>
-          </div>
-
-          {error && (
-            <p
-              role="alert"
-              className="mb-4 rounded-lg border border-red-900 bg-red-950 px-4 py-3 text-sm text-red-300"
-            >
-              {error}
-            </p>
-          )}
+          <ErrorMessage message={error} />
 
           {isLoading && (
-            <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-8 text-center">
-              <p className="text-neutral-300" aria-live="polite">
-                Loading your listings...
-              </p>
-            </div>
+            <StatusPanel message="Loading your listings..." isBusy />
           )}
 
           {!isLoading && listings.length === 0 && (
-            <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-8 text-center">
-              <p className="text-neutral-400">
-                You have no active listings.
-              </p>
-            </div>
+            <StatusPanel message="You have no active listings." />
           )}
 
           <div className="space-y-4">
-            {listings.map((listing) => {
-              const isEditing = editingId === listing.id;
-              const totalValue = listing.price * listing.quantity;
-
-              return (
-                <article
-                  key={listing.id}
-                  className="flex flex-col gap-5 rounded-lg border border-neutral-800 bg-neutral-900 p-5 md:flex-row md:items-center"
-                >
-                  <div className="flex flex-1 items-center gap-5">
-                    <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg bg-neutral-950 p-2">
-                      <img
-                        src={listing.image ?? "/items/placeholder.svg"}
-                        alt=""
-                        className="h-full w-full object-contain"
-                      />
-                    </div>
-
-                    <div>
-                      <h3 className="font-semibold text-white">
-                        {listing.name}
-                      </h3>
-
-                      <p className="mt-1 text-sm text-neutral-400">
-                        {listing.category.name} · {listing.condition}
-                      </p>
-                    </div>
-                  </div>
-
-                  {isEditing ? (
-                    <div className="grid grid-cols-2 gap-4 md:min-w-80">
-                      <div>
-                        <label
-                          htmlFor={`price-${listing.id}`}
-                          className="text-xs uppercase tracking-wide text-neutral-500"
-                        >
-                          Price each
-                        </label>
-
-                        <input
-                          id={`price-${listing.id}`}
-                          type="number"
-                          min={1}
-                          value={editedPrice}
-                          onChange={(event) =>
-                            setEditedPrice(
-                              Math.max(1, Number(event.target.value))
-                            )
-                          }
-                          className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
-                        />
-                      </div>
-
-                      <div>
-                        <label
-                          htmlFor={`quantity-${listing.id}`}
-                          className="text-xs uppercase tracking-wide text-neutral-500"
-                        >
-                          Quantity
-                        </label>
-
-                        <input
-                          id={`quantity-${listing.id}`}
-                          type="number"
-                          min={1}
-                          value={editedQuantity}
-                          onChange={(event) =>
-                            setEditedQuantity(
-                              Math.max(1, Number(event.target.value))
-                            )
-                          }
-                          className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-6 md:min-w-80">
-                      <div>
-                        <p className="text-xs uppercase tracking-wide text-neutral-500">
-                          Price each
-                        </p>
-
-                        <p className="mt-1 font-medium text-white">
-                          ₽ {listing.price.toLocaleString()}
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="text-xs uppercase tracking-wide text-neutral-500">
-                          Total value
-                        </p>
-
-                        <p className="mt-1 font-medium text-amber-200">
-                          ₽ {totalValue.toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="flex flex-wrap gap-3">
-                    {isEditing ? (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => handleSave(listing)}
-                          disabled={busyId === listing.id}
-                          className="flex items-center justify-center gap-2 rounded-lg bg-amber-300 px-4 py-2 text-sm font-semibold text-neutral-950 transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
-                        >
-                          <Check size={17} aria-hidden="true" />
-                          {busyId === listing.id ? "Saving..." : "Save"}
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setEditingId(null)}
-                          className="flex items-center justify-center gap-2 rounded-lg border border-neutral-700 px-4 py-2 text-sm text-neutral-300 transition hover:bg-neutral-800 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
-                        >
-                          <X size={17} aria-hidden="true" />
-                          Cancel
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => startEditing(listing)}
-                          aria-label={`Edit ${listing.name} listing`}
-                          className="flex items-center justify-center gap-2 rounded-lg border border-neutral-700 px-4 py-2 text-sm text-neutral-300 transition hover:border-amber-200 hover:text-amber-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
-                        >
-                          <Pencil size={17} aria-hidden="true" />
-                          Edit
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => handleRemove(listing)}
-                          disabled={busyId === listing.id}
-                          aria-label={`Remove ${listing.name} listing`}
-                          className="flex items-center justify-center gap-2 rounded-lg border border-neutral-700 px-4 py-2 text-sm text-neutral-300 transition hover:border-red-900 hover:bg-red-950 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
-                        >
-                          <Trash2 size={17} aria-hidden="true" />
-                          {busyId === listing.id ? "Removing..." : "Remove"}
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </article>
-              );
-            })}
+            {listings.map((listing) => (
+              <ListingCard
+                key={listing.id}
+                listing={listing}
+                isEditing={editingId === listing.id}
+                isBusy={busyId === listing.id}
+                editedPrice={editedPrice}
+                editedQuantity={editedQuantity}
+                onPriceChange={setEditedPrice}
+                onQuantityChange={setEditedQuantity}
+                onEdit={() => startEditing(listing)}
+                onSave={() => handleSave(listing)}
+                onCancel={() => setEditingId(null)}
+                onRemove={() => handleRemove(listing)}
+              />
+            ))}
           </div>
         </section>
       </div>

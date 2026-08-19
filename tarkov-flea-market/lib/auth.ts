@@ -80,6 +80,7 @@ export async function getCurrentUser() {
       username: true,
       email: true,
       avatar: true,
+      balance: true,
       createdAt: true,
     },
   });

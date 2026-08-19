@@ -1,62 +1,124 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import type { AuthUser } from "../api/auth";
+import { fetchCurrentUser, updateProfile } from "../api/auth";
 
 function useProfile() {
-  const [profileImage, setProfileImage] = useState<string | null>(() => {
-    return localStorage.getItem("profileImage");
-  });
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const [username, setUsername] = useState(
-    () => localStorage.getItem("username") || "Player123"
-  );
+  const applyUser = useCallback((user: AuthUser | null) => {
+    if (!user) return;
 
-  const [email, setEmail] = useState(
-    () => localStorage.getItem("email") || "player123@example.com"
-  );
+    setUsername(user.username);
+    setEmail(user.email);
+    setProfileImage(user.avatar);
+  }, []);
 
-  const updateProfile = useCallback(
-    (newUsername: string, newEmail: string) => {
+  useEffect(() => {
+    let ignore = false;
+
+    fetchCurrentUser()
+      .then((user) => {
+        if (!ignore) applyUser(user);
+      })
+      .catch((fetchError: Error) => {
+        if (!ignore) setError(fetchError.message);
+      })
+      .finally(() => {
+        if (!ignore) setIsLoading(false);
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [applyUser]);
+
+  const saveProfile = useCallback(
+    async (newUsername: string, newEmail: string) => {
       const trimmedUsername = newUsername.trim();
       const trimmedEmail = newEmail.trim();
 
       if (!trimmedUsername || !trimmedEmail) {
+        setError("Användarnamn och e-post får inte vara tomma.");
         return false;
       }
 
-      setUsername(trimmedUsername);
-      setEmail(trimmedEmail);
+      setIsSaving(true);
+      setError(null);
 
-      localStorage.setItem("username", trimmedUsername);
-      localStorage.setItem("email", trimmedEmail);
+      try {
+        const updated = await updateProfile({
+          username: trimmedUsername,
+          email: trimmedEmail,
+        });
 
-      return true;
+        applyUser(updated);
+
+        return true;
+      } catch (saveError) {
+        setError(
+          saveError instanceof Error
+            ? saveError.message
+            : "Kunde inte spara profilen."
+        );
+
+        return false;
+      } finally {
+        setIsSaving(false);
+      }
     },
-    []
+    [applyUser]
   );
 
-  const uploadAvatar = useCallback((file: File) => {
-    if (!file.type.startsWith("image/")) {
-      return;
-    }
-
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      const image = reader.result;
-
-      if (typeof image === "string") {
-        setProfileImage(image);
-        localStorage.setItem("profileImage", image);
+  const uploadAvatar = useCallback(
+    (file: File) => {
+      if (!file.type.startsWith("image/")) {
+        setError("Filen måste vara en bild.");
+        return;
       }
-    };
 
-    reader.readAsDataURL(file);
-  }, []);
+      const reader = new FileReader();
+
+      reader.onload = async () => {
+        const image = reader.result;
+
+        if (typeof image !== "string") return;
+
+        setIsSaving(true);
+        setError(null);
+
+        try {
+          const updated = await updateProfile({ avatar: image });
+
+          applyUser(updated);
+        } catch (uploadError) {
+          setError(
+            uploadError instanceof Error
+              ? uploadError.message
+              : "Kunde inte spara bilden."
+          );
+        } finally {
+          setIsSaving(false);
+        }
+      };
+
+      reader.readAsDataURL(file);
+    },
+    [applyUser]
+  );
 
   return {
     username,
     email,
     profileImage,
-    updateProfile,
+    isLoading,
+    isSaving,
+    error,
+    saveProfile,
     uploadAvatar,
   };
 }

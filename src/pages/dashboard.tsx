@@ -1,22 +1,39 @@
+import { useEffect, useState } from "react";
 import { Package, ShoppingBag, Wallet, TrendingUp } from "lucide-react";
-import { useState } from "react";
-import type { InventoryItem } from "../types/item";
-import { items as marketItems } from "../data/items";
+import { fetchItems } from "../api/items";
+import useInventory from "../hooks/useInventory";
+import useBalanceContext from "../hooks/useBalanceContext";
+import PageHeading from "../components/ui/pageHeading";
+import SectionHeading from "../components/ui/sectionHeading";
+import StatusPanel from "../components/ui/statusPanel";
+import StatTile from "../components/stats/statTile";
+import StatGrid from "../components/stats/statGrid";
+import InventoryRow from "../components/dashboard/inventoryRow";
 
 function Dashboard() {
-  const [inventoryItems] = useState<InventoryItem[]>(() => {
-    const savedItems = localStorage.getItem("inventory");
+  const { items: inventoryItems } = useInventory();
 
-    return savedItems
-      ? JSON.parse(savedItems)
-      : [
-          { ...marketItems[0], quantity: 2 },
-          { ...marketItems[1], quantity: 5 },
-          { ...marketItems[2], quantity: 100 },
-        ];
-  });
+  const [listingCount, setListingCount] = useState<number | null>(null);
+  const [marketValue, setMarketValue] = useState(0);
 
-  const balance = Number(localStorage.getItem("balance")) || 500000;
+  useEffect(() => {
+    const controller = new AbortController();
+
+    fetchItems(controller.signal)
+      .then((apiItems) => {
+        setListingCount(apiItems.length);
+        setMarketValue(
+          apiItems.reduce((total, item) => total + item.price * item.quantity, 0)
+        );
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setListingCount(0);
+      });
+
+    return () => controller.abort();
+  }, []);
+
+  const { balance } = useBalanceContext();
 
   const inventoryValue = inventoryItems.reduce(
     (total, item) => total + item.price * item.quantity,
@@ -28,157 +45,70 @@ function Dashboard() {
     0
   );
 
-  // fake data tills backend finns
-  const activeListings = 2;
-  const totalEarned = 7850000;
-
   return (
     <main className="min-w-0 flex-1 overflow-x-hidden p-4 md:p-8">
       <div className="mx-auto w-full max-w-[1600px]">
-        <h1 className="text-2xl font-semibold text-white">
-          Dashboard
-        </h1>
+        <PageHeading
+          title="Dashboard"
+          description="Overview of your marketplace activity"
+        />
 
-        <p className="mt-1 text-sm text-neutral-400">
-          Overview of your marketplace activity
-        </p>
-
-        <section
-          className="mt-8"
-          aria-labelledby="account-overview-heading"
-        >
-          <h2
+        <section className="mt-8" aria-labelledby="account-overview-heading">
+          <SectionHeading
             id="account-overview-heading"
-            className="mb-4 text-lg font-semibold text-white"
-          >
-            Account Overview
-          </h2>
+            title="Account Overview"
+          />
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <DashboardCard
+          <StatGrid>
+            <StatTile
               title="Balance"
               value={`₽ ${balance.toLocaleString()}`}
               description="Available funds"
               icon={<Wallet size={20} aria-hidden="true" />}
             />
 
-            <DashboardCard
+            <StatTile
               title="Inventory Value"
               value={`₽ ${inventoryValue.toLocaleString()}`}
               description={`${totalItems} items owned`}
               icon={<Package size={20} aria-hidden="true" />}
             />
 
-            <DashboardCard
+            <StatTile
               title="Active Listings"
-              value={activeListings.toString()}
+              value={listingCount === null ? "…" : listingCount.toString()}
               description="Items currently for sale"
               icon={<ShoppingBag size={20} aria-hidden="true" />}
             />
 
-            <DashboardCard
-              title="Total Earned"
-              value={`₽ ${totalEarned.toLocaleString()}`}
-              description="From marketplace sales"
+            <StatTile
+              title="Market Value"
+              value={`₽ ${marketValue.toLocaleString()}`}
+              description="Total value on the marketplace"
               icon={<TrendingUp size={20} aria-hidden="true" />}
             />
-          </div>
+          </StatGrid>
         </section>
 
-        <section
-          className="mt-10"
-          aria-labelledby="inventory-overview-heading"
-        >
-          <div className="mb-4 flex items-center justify-between">
-            <h2
-              id="inventory-overview-heading"
-              className="text-lg font-semibold text-white"
-            >
-              Inventory Overview
-            </h2>
+        <section className="mt-10" aria-labelledby="inventory-overview-heading">
+          <SectionHeading
+            id="inventory-overview-heading"
+            title="Inventory Overview"
+            meta={`${inventoryItems.length} unique items`}
+          />
 
-            <span className="text-sm text-neutral-400">
-              {inventoryItems.length} unique items
-            </span>
-          </div>
-
-          <div className="overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900">
-            {inventoryItems.slice(0, 4).map((item) => (
-              <article
-                key={item.id}
-                className="flex items-center gap-4 border-b border-neutral-800 p-4 last:border-b-0"
-              >
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-md bg-neutral-950 p-2">
-                  <img
-                    src={item.image}
-                    alt=""
-                    className="h-full w-full object-contain"
-                  />
-                </div>
-
-                <div className="min-w-0 flex-1">
-                  <h3 className="font-medium text-white">
-                    {item.name}
-                  </h3>
-
-                  <p className="mt-1 text-sm text-neutral-500">
-                    Quantity: {item.quantity}
-                  </p>
-                </div>
-
-                <div className="text-right">
-                  <p className="font-medium text-white">
-                    ₽ {(item.price * item.quantity).toLocaleString()}
-                  </p>
-
-                  <p className="mt-1 text-sm text-neutral-500">
-                    ₽ {item.price.toLocaleString()} each
-                  </p>
-                </div>
-              </article>
-            ))}
-          </div>
+          {inventoryItems.length === 0 ? (
+            <StatusPanel message="Your inventory is empty." />
+          ) : (
+            <div className="overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900">
+              {inventoryItems.slice(0, 4).map((item) => (
+                <InventoryRow key={item.id} item={item} />
+              ))}
+            </div>
+          )}
         </section>
       </div>
     </main>
-  );
-}
-
-type DashboardCardProps = {
-  title: string;
-  value: string;
-  description: string;
-  icon: React.ReactNode;
-};
-
-function DashboardCard({
-  title,
-  value,
-  description,
-  icon,
-}: DashboardCardProps) {
-  return (
-    <article className="rounded-lg border border-neutral-800 bg-neutral-900 p-5">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-sm text-neutral-400">
-            {title}
-          </p>
-
-          <p className="mt-2 text-2xl font-semibold text-white">
-            {value}
-          </p>
-        </div>
-
-        <div className="rounded-lg border border-neutral-800 bg-neutral-950 p-2 text-amber-200">
-          {icon}
-        </div>
-      </div>
-
-      <p className="mt-3 text-sm text-neutral-500">
-        {description}
-      </p>
-    </article>
   );
 }
 

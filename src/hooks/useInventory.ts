@@ -1,64 +1,70 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Item, InventoryItem } from "../types/item";
-import { items as marketItems } from "../data/items";
-
-const STORAGE_KEY = "inventory";
-
-function readInventory(): InventoryItem[] {
-  const savedItems = localStorage.getItem(STORAGE_KEY);
-
-  if (savedItems) {
-    try {
-      return JSON.parse(savedItems) as InventoryItem[];
-    } catch {
-      return [];
-    }
-  }
-
-  return [
-    { ...marketItems[0], quantity: 2 },
-    { ...marketItems[1], quantity: 5 },
-    { ...marketItems[2], quantity: 100 },
-  ];
-}
+import { buyItem, fetchInventory, sellInventoryItem } from "../api/inventory";
 
 function useInventory() {
-  const [items, setItems] = useState<InventoryItem[]>(readInventory);
+  const [items, setItems] = useState<InventoryItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const reload = useCallback(async () => {
+    try {
+      setItems(await fetchInventory());
+      setError(null);
+    } catch (loadError) {
+      setError(
+        loadError instanceof Error
+          ? loadError.message
+          : "Kunde inte hämta inventory."
+      );
+    }
+  }, []);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-  }, [items]);
+    let ignore = false;
 
-  /** Adds a bought item, stacking it if it is already owned. */
-  const addItem = useCallback((item: Item, quantity: number) => {
-    setItems((current) => {
-      const owned = current.find((entry) => entry.name === item.name);
+    fetchInventory()
+      .then((inventory) => {
+        if (!ignore) setItems(inventory);
+      })
+      .catch((loadError: Error) => {
+        if (!ignore) setError(loadError.message);
+      })
+      .finally(() => {
+        if (!ignore) setIsLoading(false);
+      });
 
-      if (owned) {
-        return current.map((entry) =>
-          entry.name === item.name
-            ? { ...entry, quantity: entry.quantity + quantity }
-            : entry
-        );
-      }
-
-      return [...current, { ...item, quantity }];
-    });
+    return () => {
+      ignore = true;
+    };
   }, []);
 
+  const addItem = useCallback(
+    async (item: Item, quantity: number): Promise<number> => {
+      const result = await buyItem(item, quantity);
 
-  const removeItem = useCallback((itemId: number, quantity: number) => {
-    setItems((current) =>
-      current
-        .map((entry) =>
-          entry.id === itemId
-            ? { ...entry, quantity: entry.quantity - quantity }
-            : entry
-        )
-        .filter((entry) => entry.quantity > 0)
-    );
-  }, []);
+      await reload();
+
+      return result.balance;
+    },
+    [reload]
+  );
+
+  const removeItem = useCallback(
+    async (
+      itemId: number,
+      quantity: number,
+      earned: number
+    ): Promise<number> => {
+      const result = await sellInventoryItem(itemId, quantity, earned);
+
+      await reload();
+
+      return result.balance;
+    },
+    [reload]
+  );
 
   const filteredItems = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -73,28 +79,22 @@ function useInventory() {
   }, [items, searchTerm]);
 
   const totalInventoryValue = useMemo(() => {
-    return items.reduce(
-      (total, item) => total + item.price * item.quantity,
-      0
-    );
+    return items.reduce((total, item) => total + item.price * item.quantity, 0);
   }, [items]);
 
-  const uniqueItems = useMemo(() => {
-    return items.length;
-  }, [items]);
+  const uniqueItems = useMemo(() => items.length, [items]);
 
   const totalQuantity = useMemo(() => {
-    return items.reduce(
-      (total, item) => total + item.quantity,
-      0
-    );
+    return items.reduce((total, item) => total + item.quantity, 0);
   }, [items]);
 
   return {
     items,
-    setItems,
+    isLoading,
+    error,
     addItem,
     removeItem,
+    reload,
     searchTerm,
     setSearchTerm,
     filteredItems,

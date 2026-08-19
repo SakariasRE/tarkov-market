@@ -3,6 +3,7 @@ export type AuthUser = {
   username: string;
   email: string;
   avatar: string | null;
+  balance: number;
 };
 
 export type Credentials = {
@@ -71,5 +72,19 @@ export async function register(input: RegisterInput): Promise<AuthUser> {
 export async function logout(): Promise<void> {
   await request<{ success: boolean }>("/api/auth/logout", {
     method: "POST",
+  });
+}
+
+export type ProfileUpdate = {
+  username?: string;
+  email?: string;
+  avatar?: string | null;
+};
+
+export async function updateProfile(input: ProfileUpdate): Promise<AuthUser> {
+  return request<AuthUser>("/api/users/me", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
   });
 }

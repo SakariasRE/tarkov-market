@@ -2,7 +2,11 @@ import { useState } from "react";
 import { SlidersHorizontal } from "lucide-react";
 import type { Item } from "../types/item";
 import { deleteItem, updateItem } from "../api/items";
-import ItemCard from "../components/itemCard";
+import MarketGrid from "../components/market/marketGrid";
+import SectionHeading from "../components/ui/sectionHeading";
+import ErrorMessage from "../components/ui/errorMessage";
+import SuccessMessage from "../components/ui/successMessage";
+import StatusPanel from "../components/ui/statusPanel";
 import MarketSearch from "../components/market/marketSearch";
 import MarketFilters from "../components/market/marketFilters";
 import MarketSort from "../components/market/marketSort";
@@ -56,8 +60,7 @@ function Market({ balance, setBalance }: MarketProps) {
         await deleteItem(item.id);
       }
 
-      addItem(item, 1);
-      setBalance((current) => current - item.price);
+      setBalance(await addItem(item, 1));
       setBuyMessage(`Bought 1 × ${item.name} for ₽ ${item.price.toLocaleString()}.`);
 
       refetch();
@@ -103,18 +106,11 @@ function Market({ balance, setBalance }: MarketProps) {
         )}
 
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-lg font-semibold text-white">
-              Market Listings
-            </h1>
-
-            <p
-              className="mt-1 text-sm text-neutral-500"
-              aria-live="polite"
-            >
-              {filteredItems.length} items found
-            </p>
-          </div>
+          <SectionHeading
+            id="market-listings-heading"
+            title="Market Listings"
+            meta={`${filteredItems.length} items found`}
+          />
 
           <MarketSort
             sortBy={sortBy}
@@ -122,61 +118,35 @@ function Market({ balance, setBalance }: MarketProps) {
           />
         </div>
 
-        {buyError && (
-          <p
-            role="alert"
-            className="mt-6 rounded-lg border border-red-900 bg-red-950 px-4 py-3 text-sm text-red-300"
-          >
-            {buyError}
-          </p>
-        )}
-
-        {buyMessage && (
-          <p
-            aria-live="polite"
-            className="mt-6 rounded-lg border border-emerald-900 bg-emerald-950 px-4 py-3 text-sm text-emerald-300"
-          >
-            {buyMessage}
-          </p>
-        )}
+        <ErrorMessage message={buyError} />
+        <SuccessMessage message={buyMessage} />
 
         {isLoading && (
-          <div className="mt-10 rounded-lg border border-neutral-800 bg-neutral-900 p-8 text-center">
-            <p className="text-neutral-300" aria-live="polite">
-              Loading market listings...
-            </p>
+          <div className="mt-10">
+            <StatusPanel message="Loading market listings..." isBusy />
           </div>
         )}
 
         {!isLoading && error && (
-          <div className="mt-10 rounded-lg border border-red-900 bg-red-950 p-8 text-center">
-            <p className="text-red-300" role="alert">
-              Could not load listings: {error}
-            </p>
+          <div className="mt-10">
+            <ErrorMessage message={`Could not load listings: ${error}`} />
           </div>
         )}
 
-        {!isLoading && !error && (
-          filteredItems.length > 0 ? (
-            <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {filteredItems.map((item) => (
-                <ItemCard
-                  key={item.id}
-                  item={item}
-                  onBuy={handleBuy}
-                  isBuying={buyingId === item.id}
-                  canAfford={item.price <= balance}
-                />
-              ))}
-            </div>
+        {!isLoading && !error &&
+          (filteredItems.length > 0 ? (
+            <MarketGrid
+              items={filteredItems}
+              buyingId={buyingId}
+              balance={balance}
+              onBuy={handleBuy}
+            />
           ) : (
-            <div className="mt-10 rounded-lg border border-neutral-800 bg-neutral-900 p-8 text-center">
-              <p className="text-neutral-300">
-                No items match your search or filters.
-              </p>
+            <div className="mt-10">
+              <StatusPanel message="No items match your search or filters." />
             </div>
-          )
-        )}
+          ))}
+
       </div>
     </main>
   );

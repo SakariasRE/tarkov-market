@@ -1,24 +1,40 @@
-import type { AuthUser } from '../api/auth'
-import LoginForm from '../components/loginForm'
+import { useState } from "react";
+import type { AuthUser } from "../api/auth";
+import AuthCard from "../components/auth/authCard";
+import AuthHeading from "../components/auth/authHeading";
+import LoginForm from "../components/loginForm";
+import ModeToggle from "../components/auth/modeToggle";
+import DemoCredentials from "../components/auth/demoCredentials";
 
 type LoginProps = {
- onLogin: (user: AuthUser) => void
-}
+  onLogin: (user: AuthUser) => void;
+};
 
 function Login({ onLogin }: LoginProps) {
- return (
-  <main className="flex min-h-screen items-center justify-center bg-neutral-950 px-6">
-   <section className="w-full max-w-md">
-    <h1 className="mb-2 text-3xl font-bold text-white">Tarkov Market</h1>
+  const [isRegister, setIsRegister] = useState(false);
 
-    <p className="mb-6 text-sm text-neutral-500">
-     Logga in för att komma åt din dashboard.
-    </p>
+  return (
+    <AuthCard>
+      <AuthHeading
+        title="Tarkov Market"
+        description={
+          isRegister
+            ? "Skapa ett konto för att komma igång."
+            : "Logga in för att komma åt din dashboard."
+        }
+      />
 
-    <LoginForm onSuccess={onLogin} />
-   </section>
-  </main>
- )
+      <LoginForm isRegister={isRegister} onSuccess={onLogin} />
+
+      <ModeToggle
+        isRegister={isRegister}
+        disabled={false}
+        onToggle={() => setIsRegister((current) => !current)}
+      />
+
+      {!isRegister && <DemoCredentials />}
+    </AuthCard>
+  );
 }
 
-export default Login
+export default Login;
