@@ -7,21 +7,26 @@ import {
   User,
   Package,
   X,
+  LogOut,
 } from "lucide-react";
+import { NavLink } from "react-router-dom";
 
 type SidebarProps = {
-  currentPage: string;
-  setCurrentPage: (page: string) => void;
   isOpen: boolean;
   onClose: () => void;
+  onLogout: () => void;
 };
 
-function Sidebar({
-  currentPage,
-  setCurrentPage,
-  isOpen,
-  onClose,
-}: SidebarProps) {
+const NAV_ITEMS = [
+  { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
+  { to: "/marketplace", label: "Marketplace", icon: ShoppingBag, end: false },
+  { to: "/inventory", label: "Inventory", icon: Package, end: false },
+  { to: "/listings", label: "My Listings", icon: List, end: false },
+  { to: "/sell", label: "Sell Item", icon: Plus, end: false },
+  { to: "/statistics", label: "Statistics", icon: BarChart3, end: false },
+];
+
+function Sidebar({ isOpen, onClose, onLogout }: SidebarProps) {
   return (
     <>
       {isOpen && (
@@ -44,9 +49,7 @@ function Sidebar({
               Tarkov
             </h1>
 
-            <p className="text-xs tracking-[0.35em] text-neutral-500">
-              Market
-            </p>
+            <p className="text-xs tracking-[0.35em] text-neutral-500">Market</p>
           </div>
 
           <button
@@ -59,60 +62,35 @@ function Sidebar({
           </button>
         </div>
 
-        <nav
-          className="flex flex-col gap-2"
-          aria-label="Main navigation"
-        >
-          <NavItem
-            icon={<LayoutDashboard size={19} aria-hidden="true" />}
-            text="Dashboard"
-            active={currentPage === "dashboard"}
-            onClick={() => setCurrentPage("dashboard")}
-          />
-
-          <NavItem
-            icon={<ShoppingBag size={19} aria-hidden="true" />}
-            text="Marketplace"
-            active={currentPage === "marketplace"}
-            onClick={() => setCurrentPage("marketplace")}
-          />
-
-          <NavItem
-            icon={<Package size={19} aria-hidden="true" />}
-            text="Inventory"
-            active={currentPage === "inventory"}
-            onClick={() => setCurrentPage("inventory")}
-          />
-
-          <NavItem
-            icon={<List size={19} aria-hidden="true" />}
-            text="My Listings"
-            active={currentPage === "listings"}
-            onClick={() => setCurrentPage("listings")}
-          />
-
-          <NavItem
-            icon={<Plus size={19} aria-hidden="true" />}
-            text="Sell Item"
-            active={currentPage === "sell"}
-            onClick={() => setCurrentPage("sell")}
-          />
-
-          <NavItem
-            icon={<BarChart3 size={19} aria-hidden="true" />}
-            text="Statistics"
-            active={currentPage === "statistics"}
-            onClick={() => setCurrentPage("statistics")}
-          />
+        <nav className="flex flex-col gap-2" aria-label="Main navigation">
+          {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
+            <NavItem
+              key={to}
+              to={to}
+              end={end}
+              icon={<Icon size={19} aria-hidden="true" />}
+              text={label}
+              onNavigate={onClose}
+            />
+          ))}
         </nav>
 
         <div className="mt-auto border-t border-neutral-800 pt-5">
           <NavItem
+            to="/profile"
             icon={<User size={19} aria-hidden="true" />}
             text="Profile"
-            active={currentPage === "profile"}
-            onClick={() => setCurrentPage("profile")}
+            onNavigate={onClose}
           />
+
+          <button
+            type="button"
+            onClick={onLogout}
+            className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-neutral-400 transition hover:bg-neutral-900 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+          >
+            <LogOut size={19} aria-hidden="true" />
+            Log out
+          </button>
         </div>
       </aside>
     </>
@@ -120,32 +98,30 @@ function Sidebar({
 }
 
 type NavItemProps = {
+  to: string;
   icon: React.ReactNode;
   text: string;
-  active?: boolean;
-  onClick: () => void;
+  end?: boolean;
+  onNavigate: () => void;
 };
 
-function NavItem({
-  icon,
-  text,
-  active,
-  onClick,
-}: NavItemProps) {
+function NavItem({ to, icon, text, end, onNavigate }: NavItemProps) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-current={active ? "page" : undefined}
-      className={`flex w-full items-center gap-3 px-4 py-3 text-left text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 ${
-        active
-          ? "nav-item-active border-l-2 border-amber-300 bg-neutral-800 text-amber-200"
-          : "text-neutral-400 hover:bg-neutral-900 hover:text-white"
-      }`}
+    <NavLink
+      to={to}
+      end={end}
+      onClick={onNavigate}
+      className={({ isActive }) =>
+        `flex w-full items-center gap-3 px-4 py-3 text-left text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 ${
+          isActive
+            ? "nav-item-active border-l-2 border-amber-300 bg-neutral-800 text-amber-200"
+            : "text-neutral-400 hover:bg-neutral-900 hover:text-white"
+        }`
+      }
     >
       {icon}
       {text}
-    </button>
+    </NavLink>
   );
 }
 

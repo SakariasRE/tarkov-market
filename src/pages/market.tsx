@@ -1,12 +1,28 @@
+import { useState } from "react";
 import { SlidersHorizontal } from "lucide-react";
-import ItemCard from "../components/itemCard";
+import type { Item } from "../types/item";
+import { deleteItem, updateItem } from "../api/items";
+import MarketGrid from "../components/market/marketGrid";
+import SectionHeading from "../components/ui/sectionHeading";
+import ErrorMessage from "../components/ui/errorMessage";
+import SuccessMessage from "../components/ui/successMessage";
+import StatusPanel from "../components/ui/statusPanel";
 import MarketSearch from "../components/market/marketSearch";
 import MarketFilters from "../components/market/marketFilters";
 import MarketSort from "../components/market/marketSort";
 import useMarket from "../hooks/useMarket";
+import useInventory from "../hooks/useInventory";
 
-function Market() {
+type MarketProps = {
+  balance: number;
+  setBalance: React.Dispatch<React.SetStateAction<number>>;
+};
+
+function Market({ balance, setBalance }: MarketProps) {
   const {
+    isLoading,
+    error,
+    refetch,
     searchTerm,
     setSearchTerm,
     category,
@@ -18,6 +34,44 @@ function Market() {
     categories,
     filteredItems,
   } = useMarket();
+
+  const { addItem } = useInventory();
+
+  const [buyingId, setBuyingId] = useState<number | null>(null);
+  const [buyError, setBuyError] = useState<string | null>(null);
+  const [buyMessage, setBuyMessage] = useState<string | null>(null);
+
+  async function handleBuy(item: Item) {
+    if (item.price > balance) {
+      setBuyError("You do not have enough roubles for that.");
+
+      return;
+    }
+
+    setBuyingId(item.id);
+    setBuyError(null);
+    setBuyMessage(null);
+
+    try {
+      // One unit leaves the listing; the listing disappears when it runs out.
+      if (item.listings > 1) {
+        await updateItem(item.id, { quantity: item.listings - 1 });
+      } else {
+        await deleteItem(item.id);
+      }
+
+      setBalance(await addItem(item, 1));
+      setBuyMessage(`Bought 1 × ${item.name} for ₽ ${item.price.toLocaleString()}.`);
+
+      refetch();
+    } catch (error) {
+      setBuyError(
+        error instanceof Error ? error.message : "Failed to buy this item."
+      );
+    } finally {
+      setBuyingId(null);
+    }
+  }
 
   return (
     <main className="min-w-0 flex-1 overflow-x-hidden p-4 md:p-8">
@@ -52,18 +106,11 @@ function Market() {
         )}
 
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-lg font-semibold text-white">
-              Market Listings
-            </h1>
-
-            <p
-              className="mt-1 text-sm text-neutral-500"
-              aria-live="polite"
-            >
-              {filteredItems.length} items found
-            </p>
-          </div>
+          <SectionHeading
+            id="market-listings-heading"
+            title="Market Listings"
+            meta={`${filteredItems.length} items found`}
+          />
 
           <MarketSort
             sortBy={sortBy}
@@ -71,22 +118,35 @@ function Market() {
           />
         </div>
 
-        {filteredItems.length > 0 ? (
-          <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {filteredItems.map((item) => (
-              <ItemCard
-                key={item.id}
-                item={item}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="mt-10 rounded-lg border border-neutral-800 bg-neutral-900 p-8 text-center">
-            <p className="text-neutral-300">
-              No items match your search or filters.
-            </p>
+        <ErrorMessage message={buyError} />
+        <SuccessMessage message={buyMessage} />
+
+        {isLoading && (
+          <div className="mt-10">
+            <StatusPanel message="Loading market listings..." isBusy />
           </div>
         )}
+
+        {!isLoading && error && (
+          <div className="mt-10">
+            <ErrorMessage message={`Could not load listings: ${error}`} />
+          </div>
+        )}
+
+        {!isLoading && !error &&
+          (filteredItems.length > 0 ? (
+            <MarketGrid
+              items={filteredItems}
+              buyingId={buyingId}
+              balance={balance}
+              onBuy={handleBuy}
+            />
+          ) : (
+            <div className="mt-10">
+              <StatusPanel message="No items match your search or filters." />
+            </div>
+          ))}
+
       </div>
     </main>
   );
