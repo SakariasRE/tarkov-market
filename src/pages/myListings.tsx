@@ -1,115 +1,138 @@
-import { Trash2 } from "lucide-react";
-
-const mockListings = [
-  {
-    id: 1,
-    name: "Graphics Card",
-    quantity: 2,
-    price: 950000,
-    image: "/items/graphics-card.png",
-  },
-  {
-    id: 2,
-    name: "LEDX Skin Transilluminator",
-    quantity: 1,
-    price: 1500000,
-    image: "/items/ledx.png",
-  },
-];
+import { useEffect, useState } from "react";
+import type { ApiItem } from "../api/items";
+import { deleteItem, fetchItems, updateItem } from "../api/items";
+import PageHeading from "../components/ui/pageHeading";
+import SectionHeading from "../components/ui/sectionHeading";
+import ErrorMessage from "../components/ui/errorMessage";
+import StatusPanel from "../components/ui/statusPanel";
+import ListingCard from "../components/listings/listingCard";
 
 function MyListings() {
+  const [listings, setListings] = useState<ApiItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<number | null>(null);
+
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editedPrice, setEditedPrice] = useState(0);
+  const [editedQuantity, setEditedQuantity] = useState(1);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    fetchItems(controller.signal)
+      .then((apiItems) => {
+        setListings(apiItems);
+        setIsLoading(false);
+      })
+      .catch((fetchError: Error) => {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        setError(fetchError.message);
+        setIsLoading(false);
+      });
+
+    return () => controller.abort();
+  }, []);
+
+  function startEditing(listing: ApiItem) {
+    setEditingId(listing.id);
+    setEditedPrice(listing.price);
+    setEditedQuantity(listing.quantity);
+    setError(null);
+  }
+
+  async function handleSave(listing: ApiItem) {
+    setBusyId(listing.id);
+    setError(null);
+
+    try {
+      const updated = await updateItem(listing.id, {
+        price: editedPrice,
+        quantity: editedQuantity,
+      });
+
+      setListings((current) =>
+        current.map((item) => (item.id === updated.id ? updated : item))
+      );
+
+      setEditingId(null);
+    } catch (saveError) {
+      setError(
+        saveError instanceof Error
+          ? saveError.message
+          : "Failed to update listing."
+      );
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function handleRemove(listing: ApiItem) {
+    setBusyId(listing.id);
+    setError(null);
+
+    try {
+      await deleteItem(listing.id);
+
+      setListings((current) =>
+        current.filter((item) => item.id !== listing.id)
+      );
+    } catch (deleteError) {
+      setError(
+        deleteError instanceof Error
+          ? deleteError.message
+          : "Failed to remove listing."
+      );
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   return (
     <main className="min-w-0 flex-1 overflow-x-hidden p-4 md:p-8">
       <div className="mx-auto w-full max-w-[1600px]">
-        <div>
-          <h1 className="text-2xl font-semibold text-white">
-            My Listings
-          </h1>
+        <PageHeading
+          title="My Listings"
+          description="Manage the items you currently have listed for sale"
+        />
 
-          <p className="mt-1 text-sm text-neutral-400">
-            Manage the items you currently have listed for sale
-          </p>
-        </div>
+        <section className="mt-8" aria-labelledby="active-listings-heading">
+          <SectionHeading
+            id="active-listings-heading"
+            title="Active Listings"
+            meta={`${listings.length} listings`}
+          />
 
-        <section
-          className="mt-8"
-          aria-labelledby="active-listings-heading"
-        >
-          <div className="mb-4 flex items-center justify-between">
-            <h2
-              id="active-listings-heading"
-              className="text-lg font-semibold text-white"
-            >
-              Active Listings
-            </h2>
+          <ErrorMessage message={error} />
 
-            <p className="text-sm text-neutral-400">
-              {mockListings.length} listings
-            </p>
-          </div>
+          {isLoading && (
+            <StatusPanel message="Loading your listings..." isBusy />
+          )}
+
+          {!isLoading && listings.length === 0 && (
+            <StatusPanel message="You have no active listings." />
+          )}
 
           <div className="space-y-4">
-            {mockListings.map((listing) => {
-              const totalValue = listing.price * listing.quantity;
-
-              return (
-                <article
-                  key={listing.id}
-                  className="flex flex-col gap-5 rounded-lg border border-neutral-800 bg-neutral-900 p-5 md:flex-row md:items-center"
-                >
-                  <div className="flex flex-1 items-center gap-5">
-                    <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg bg-neutral-950 p-2">
-                      <img
-                        src={listing.image}
-                        alt=""
-                        className="h-full w-full object-contain"
-                      />
-                    </div>
-
-                    <div>
-                      <h3 className="font-semibold text-white">
-                        {listing.name}
-                      </h3>
-
-                      <p className="mt-1 text-sm text-neutral-400">
-                        Quantity: {listing.quantity}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-6 md:min-w-80">
-                    <div>
-                      <p className="text-xs uppercase tracking-wide text-neutral-500">
-                        Price each
-                      </p>
-
-                      <p className="mt-1 font-medium text-white">
-                        ₽ {listing.price.toLocaleString()}
-                      </p>
-                    </div>
-
-                    <div>
-                      <p className="text-xs uppercase tracking-wide text-neutral-500">
-                        Total value
-                      </p>
-
-                      <p className="mt-1 font-medium text-amber-200">
-                        ₽ {totalValue.toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    aria-label={`Remove ${listing.name} listing`}
-                    className="flex items-center justify-center gap-2 rounded-lg border border-neutral-700 px-4 py-2 text-sm text-neutral-300 transition hover:border-red-900 hover:bg-red-950 hover:text-red-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
-                  >
-                    <Trash2 size={17} aria-hidden="true" />
-                    Remove
-                  </button>
-                </article>
-              );
-            })}
+            {listings.map((listing) => (
+              <ListingCard
+                key={listing.id}
+                listing={listing}
+                isEditing={editingId === listing.id}
+                isBusy={busyId === listing.id}
+                editedPrice={editedPrice}
+                editedQuantity={editedQuantity}
+                onPriceChange={setEditedPrice}
+                onQuantityChange={setEditedQuantity}
+                onEdit={() => startEditing(listing)}
+                onSave={() => handleSave(listing)}
+                onCancel={() => setEditingId(null)}
+                onRemove={() => handleRemove(listing)}
+              />
+            ))}
           </div>
         </section>
       </div>

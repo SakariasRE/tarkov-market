@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { addFunds } from "../api/inventory";
 import { Plus, X } from "lucide-react";
 
 type BalanceProps = {
@@ -10,16 +11,35 @@ function Balance({ balance, setBalance }: BalanceProps) {
   const [amount, setAmount] = useState("");
   const [isOpen, setIsOpen] = useState(false);
 
-  const addFunds = () => {
+  const [error, setError] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleAddFunds = async () => {
     const value = Number(amount);
 
     if (value <= 0 || isNaN(value)) {
+      setError("Ange ett belopp större än noll.");
       return;
     }
 
-    setBalance(balance + value);
-    setAmount("");
-    setIsOpen(false);
+    setIsSaving(true);
+    setError("");
+
+    try {
+      const result = await addFunds(value);
+
+      setBalance(result.balance);
+      setAmount("");
+      setIsOpen(false);
+    } catch (fundsError) {
+      setError(
+        fundsError instanceof Error
+          ? fundsError.message
+          : "Kunde inte lägga till pengar."
+      );
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -70,11 +90,18 @@ function Balance({ balance, setBalance }: BalanceProps) {
               className="w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-neutral-100 outline-none focus:border-amber-200"
             />
 
+            {error && (
+              <p role="alert" className="mt-3 text-sm text-red-400">
+                {error}
+              </p>
+            )}
+
             <button
-              onClick={addFunds}
-              className="mt-4 w-full rounded bg-amber-200 px-4 py-3 font-medium text-neutral-950 hover:bg-amber-100"
+              onClick={handleAddFunds}
+              disabled={isSaving}
+              className="mt-4 w-full rounded bg-amber-200 px-4 py-3 font-medium text-neutral-950 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Add funds
+              {isSaving ? "Lägger till…" : "Add funds"}
             </button>
 
           </div>

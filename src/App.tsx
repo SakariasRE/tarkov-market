@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
-import Sidebar from "./components/sidebar";
-import Header from "./components/header";
+import { Navigate, Route, Routes } from "react-router-dom";
+import type { AuthUser } from "./api/auth";
+import { fetchCurrentUser, logout } from "./api/auth";
+import AppLayout from "./components/layout/appLayout";
+import RequireAuth from "./components/layout/requireAuth";
+import LoadingScreen from "./components/layout/loadingScreen";
+import Login from "./pages/login";
 import Inventory from "./pages/inventory";
 import SellItem from "./pages/sellItem";
 import Market from "./pages/market";
@@ -10,51 +15,89 @@ import Dashboard from "./pages/dashboard";
 import Profile from "./pages/profile";
 
 function App() {
-  const [balance, setBalance] = useState(() => {
-    const savedBalance = localStorage.getItem("balance");
-    return savedBalance ? Number(savedBalance) : 500000;
-  });
-
-  const [currentPage, setCurrentPage] = useState("inventory");
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [balance, setBalance] = useState(0);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
 
   useEffect(() => {
-    localStorage.setItem("balance", balance.toString());
-  }, [balance]);
+    let ignore = false;
 
-  function handlePageChange(page: string) {
-    setCurrentPage(page);
-    setIsSidebarOpen(false);
+    fetchCurrentUser()
+      .then((currentUser) => {
+        if (ignore) return;
+
+        setUser(currentUser);
+        if (currentUser) setBalance(currentUser.balance);
+      })
+      .catch(() => {
+        if (!ignore) setUser(null);
+      })
+      .finally(() => {
+        if (!ignore) setIsCheckingSession(false);
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  async function handleLogout() {
+    try {
+      await logout();
+    } catch {
+      setUser(null);
+    }
+
+    setUser(null);
+  }
+
+  if (isCheckingSession) {
+    return <LoadingScreen />;
   }
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100">
-      <Sidebar
-        currentPage={currentPage}
-        setCurrentPage={handlePageChange}
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
+    <Routes>
+      <Route
+        path="/login"
+        element={
+          user ? (
+            <Navigate to="/" replace />
+          ) : (
+            <Login
+              onLogin={(loggedIn) => {
+                setUser(loggedIn);
+                setBalance(loggedIn.balance);
+              }}
+            />
+          )
+        }
       />
 
-      <div className="flex min-h-screen min-w-0 flex-col md:ml-64">
-        <Header
-          balance={balance}
-          setBalance={setBalance}
-          onProfileClick={() => handlePageChange("profile")}
-          onMenuClick={() => setIsSidebarOpen(true)}
-        />
+      <Route element={<RequireAuth user={user} />}>
+        <Route
+          element={
+            <AppLayout
+              balance={balance}
+              setBalance={setBalance}
+              onLogout={handleLogout}
+            />
+          }
+        >
+          <Route path="/" element={<Dashboard />} />
+          <Route
+            path="/marketplace"
+            element={<Market balance={balance} setBalance={setBalance} />}
+          />
+          <Route path="/inventory" element={<Inventory />} />
+          <Route path="/listings" element={<MyListings />} />
+          <Route path="/sell" element={<SellItem setBalance={setBalance} />} />
+          <Route path="/statistics" element={<Statistics />} />
+          <Route path="/profile" element={<Profile />} />
+        </Route>
+      </Route>
 
-        <div className="flex min-w-0 flex-1">
-          {currentPage === "profile" && <Profile />}
-          {currentPage === "dashboard" && <Dashboard />}
-          {currentPage === "marketplace" && <Market />}
-          {currentPage === "inventory" && <Inventory />}
-          {currentPage === "sell" && <SellItem />}
-          {currentPage === "statistics" && <Statistics />}
-          {currentPage === "listings" && <MyListings />}
-        </div>
-      </div>
-    </div>
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
 
