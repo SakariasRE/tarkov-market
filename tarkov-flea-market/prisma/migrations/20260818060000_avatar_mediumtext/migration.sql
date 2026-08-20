@@ -1,2 +1,1 @@
--- AlterTable
 ALTER TABLE `User` MODIFY COLUMN `avatar` MEDIUMTEXT NULL;

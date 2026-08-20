@@ -47,7 +47,8 @@ export async function POST(request: Request) {
                 id: true,
                 username: true,
                 email: true,
-                avatar: true
+                avatar: true,
+                balance: true
             }
         })
 

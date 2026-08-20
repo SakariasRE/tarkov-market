@@ -37,7 +37,8 @@ export async function POST(request: Request) {
             id: user.id,
             username: user.username,
             email: user.email,
-            avatar: user.avatar
+            avatar: user.avatar,
+            balance: user.balance
         })
     } catch (error) {
         console.error('Failed to log in:', error)
